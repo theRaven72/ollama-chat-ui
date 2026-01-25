@@ -32,6 +32,10 @@ A sleek, feature-rich GUI for interacting with locally-hosted Ollama language mo
 
 ## Requirements
 
+**GPU Acceleration (AMD GPUs)**  
+> Ollama automatically uses Vulkan for GPU acceleration on supported AMD GPUs.  
+> No manual configuration, environment variables, or special setup is required.
+
 ### System Requirements
 - **Python 3.x** (3.7 or higher recommended)
 - **Ollama** installed and running locally
@@ -199,15 +203,10 @@ AVAILABLE_MODELS = [
 This project includes comprehensive guides for setup, customization, and troubleshooting.
 
 ### Getting Started
-- **[⚠️ Compatibility & System Requirements](compatibility.md)** - Read this FIRST to see if these instructions will work for your system
-
-### GPU Acceleration (Optional - Recommended for AMD GPUs)
-- **[Installing ROCm for AMD GPUs](installing-rocm.md)** - Step-by-step guide for GPU acceleration on Pop!_OS 24.04
-- **[ROCm Troubleshooting](troubleshooting-rocm.md)** - GPU not detected? Model still slow? Start here.
+- **[⚠️ Compatibility & System Requirements](compatibility.md)** - Read this FIRST to see if these instructions will work for your system.
 
 ### Troubleshooting
 - **[UI Troubleshooting](troubleshooting-ui.md)** - App won't start? Buttons not working? Check this guide.
-- **[ROCm/GPU Issues](troubleshooting-rocm.md)** - GPU acceleration problems
 
 ### Customization Guides
 - **[Change Model Display Names](change-model-names.md)** - Give your models custom names like "Claire" or "Bob"
@@ -276,7 +275,7 @@ Contributions are welcome! Feel free to:
 
 ## License
 
-MIT License - feel free to use, modify, and distribute as you wish.
+MIT License - feel free to use, modify, and distribute as you wish. Sale of the application, code, files, is prohibited.
 
 ## Acknowledgments
 
