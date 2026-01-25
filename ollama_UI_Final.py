@@ -213,11 +213,11 @@ class OllamaChatUI(tk.Tk):
         self.output_tokens = 0  # Track AI output tokens
         self.current_theme = "Dark"  # Track current theme
         
-        # Model display names
+        # Model display names - Add your custom names here
+        # Example: "gemma3:12b": "Claire", "llama3.1:8b": "Bob"
         self.model_display_names = {
-            "gemma3:12b": "Claire",
-            "gemma3:27b": "Jane",
-            "qwen2.5:14b": "Maria"
+            # Add your custom model names here
+            # "model:tag": "Display Name"
         }
 
         outer = tk.Frame(self, bg=COLOR_BG_FRAME,
@@ -236,7 +236,7 @@ class OllamaChatUI(tk.Tk):
         )
         model_label.pack(side=tk.LEFT, padx=(0, 10))
 
-        self.model_var = tk.StringVar(value="Claire (gemma3:12b)")
+        self.model_var = tk.StringVar(value="Select Model...")
         # Create button that shows current model
         self.model_btn = tk.Button(
             model_frame,
@@ -421,18 +421,11 @@ class OllamaChatUI(tk.Tk):
                     command=lambda m=model_id: self._select_model(m)
                 )
         else:
-            # Fallback to hardcoded list if API fails
-            models = [
-                ("gemma3:12b", "Claire"),
-                ("gemma3:27b", "Jane"),
-                ("qwen2.5:14b", "Maria")
-            ]
-            
-            for model_id, display_name in models:
-                menu.add_command(
-                    label=f"{display_name} ({model_id})",
-                    command=lambda m=model_id: self._select_model(m)
-                )
+            # No models installed - show message
+            menu.add_command(
+                label="No models installed - Install via Settings",
+                state="disabled"
+            )
         
         # Show menu below the button
         x = self.model_btn.winfo_rootx()
@@ -1244,7 +1237,13 @@ python3 -c "import tkinter"
         )
         names_frame.pack(fill=tk.BOTH, expand=True, padx=30, pady=(0, 15))
         
-        if self.model_display_names:
+        # Get installed models to filter custom names
+        installed_models = self._get_installed_models()
+        
+        # Filter to only show names for installed models
+        installed_named_models = {k: v for k, v in self.model_display_names.items() if k in installed_models}
+        
+        if installed_named_models:
             names_info = tk.Label(
                 names_frame,
                 text="Your custom model names:",
@@ -1254,7 +1253,7 @@ python3 -c "import tkinter"
             )
             names_info.pack(pady=(10, 10))
             
-            for model_id, display_name in self.model_display_names.items():
+            for model_id, display_name in installed_named_models.items():
                 name_row = tk.Frame(names_frame, bg=COLOR_BG_FRAME)
                 name_row.pack(fill=tk.X, padx=20, pady=3)
                 
