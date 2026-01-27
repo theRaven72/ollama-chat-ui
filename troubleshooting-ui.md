@@ -22,7 +22,7 @@ sudo pacman -S tk
 
 **Solution:**
 ```bash
-pip install requests duckduckgo-search --break-system-packages
+pip install requests --break-system-packages
 ```
 
 ### "error: externally-managed-environment"
@@ -34,20 +34,51 @@ pip install package-name --break-system-packages
 
 ## Connection Issues
 
-### "Connection refused" or can't connect to models
+### Ollama service not running (MOST COMMON)
+
+**Symptoms:** Model dropdown is empty, can't connect, "Connection refused" errors
 
 **Check if Ollama is running:**
 ```bash
-ollama list
+systemctl status ollama
 ```
 
-If you get an error, start Ollama:
+**If it shows "inactive (dead)" or "Active: inactive":**
 ```bash
-# Usually starts automatically, but you can restart with:
-systemctl restart ollama
+# Start Ollama
+sudo systemctl start ollama
+
+# Enable it to start automatically on boot (recommended)
+sudo systemctl enable ollama
+
+# Verify it's running
+systemctl status ollama
+# Should show "Active: active (running)" in green
 ```
 
-### No models in dropdown
+**Quick test to confirm Ollama is working:**
+```bash
+# Should list your installed models
+ollama list
+
+# OR test the API directly
+curl http://localhost:11434/api/tags
+```
+
+After starting Ollama, restart your Chat UI app and the model dropdown should populate!
+
+### "Connection refused" or can't connect to models
+
+If Ollama is running but you still get connection errors:
+```bash
+# Restart Ollama service
+sudo systemctl restart ollama
+
+# Check for errors
+sudo journalctl -u ollama -n 50
+```
+
+### No models in dropdown (after starting Ollama)
 
 **Install a model first:**
 ```bash
@@ -69,20 +100,6 @@ Or use the **📥 Install Model** button in Settings → Model Management.
 - Use smaller models
 - Clear chat history more frequently
 - Restart Ollama: `systemctl restart ollama`
-
-## Internet Search Issues
-
-### Search not working
-
-1. Check internet connection
-2. Try disabling/re-enabling with 🌐 Internet button
-3. DuckDuckGo might be blocked - try a VPN
-
-### Getting wrong/outdated results
-
-- Search engines aren't perfect
-- Try rephrasing your question
-- Be specific with dates: "bitcoin price today"
 
 ## UI Issues
 

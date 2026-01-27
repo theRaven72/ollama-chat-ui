@@ -7,11 +7,6 @@ import subprocess
 import re
 import threading
 
-try:
-    from ddgs import DDGS
-except ImportError:
-    from duckduckgo_search import DDGS
-
 OLLAMA_CHAT_URL = "http://localhost:11434/api/chat"
 
 # ----- Color Scheme -----
@@ -206,18 +201,19 @@ class OllamaChatUI(tk.Tk):
         self.messages = []
         self.current_model = None
         self.connected = False
-        self.web_search_enabled = False  # Default to OFF
         self.spell_checker = SpellChecker()
         self.total_tokens = 0  # Track total tokens in conversation
         self.input_tokens = 0  # Track user input tokens
         self.output_tokens = 0  # Track AI output tokens
         self.current_theme = "Dark"  # Track current theme
+        self.last_response_time = 0  # Track time for last response
+        self.last_tokens_per_sec = 0  # Track tokens/second for last response
         
-        # Model display names
+        # Model display names - Add your custom names here
+        # Example: "gemma3:12b": "Example", "llama3.1:8b": "Bob"
         self.model_display_names = {
-            "gemma3:12b": "Claire",
-            "gemma3:27b": "Jane",
-            "qwen2.5:14b": "Maria"
+            # Add your custom model names here
+            # "model:tag": "Display Name"
         }
 
         outer = tk.Frame(self, bg=COLOR_BG_FRAME,
@@ -236,7 +232,7 @@ class OllamaChatUI(tk.Tk):
         )
         model_label.pack(side=tk.LEFT, padx=(0, 10))
 
-        self.model_var = tk.StringVar(value="Claire (gemma3:12b)")
+        self.model_var = tk.StringVar(value="Select Model...")
         # Create button that shows current model
         self.model_btn = tk.Button(
             model_frame,
@@ -266,18 +262,6 @@ class OllamaChatUI(tk.Tk):
         )
         self.connect_btn.pack(side=tk.LEFT)
 
-        self.search_toggle_btn = tk.Button(
-            model_frame, text="🌐 Internet: OFF",
-            command=self.toggle_web_search,
-            bg="#22223b", fg=COLOR_BTN_FG,
-            activebackground="#2f2f5a",
-            relief=tk.FLAT, bd=0,
-            font=FONT_BTN, padx=15, pady=5,
-            highlightthickness=1,
-            highlightbackground=COLOR_BORDER
-        )
-        self.search_toggle_btn.pack(side=tk.LEFT, padx=(10, 0))
-
         self.settings_btn = tk.Button(
             model_frame, text="⚙️ Settings",
             command=self.show_settings,
@@ -297,6 +281,7 @@ class OllamaChatUI(tk.Tk):
         )
         self.status_label.pack(side=tk.LEFT, padx=(15, 0))
         
+        
         # Token counter with input/output breakdown
         self.token_label = tk.Label(
             model_frame, text="Tokens: 0 (In: 0 | Out: 0)",
@@ -304,6 +289,22 @@ class OllamaChatUI(tk.Tk):
             font=FONT_MAIN
         )
         self.token_label.pack(side=tk.LEFT, padx=(15, 0))
+        
+        # Response speed indicator
+        self.speed_label = tk.Label(
+            model_frame, text="Speed: --",
+            bg=COLOR_BG_FRAME, fg="#888888",
+            font=FONT_MAIN
+        )
+        self.speed_label.pack(side=tk.LEFT, padx=(15, 0))
+        
+        # Message count
+        self.message_count_label = tk.Label(
+            model_frame, text="Messages: 0",
+            bg=COLOR_BG_FRAME, fg="#888888",
+            font=FONT_MAIN
+        )
+        self.message_count_label.pack(side=tk.LEFT, padx=(15, 0))
 
         # ----- Chat Log with Model Name -----
         chat_container = tk.Frame(outer, bg=COLOR_BG_FRAME)
@@ -400,9 +401,11 @@ class OllamaChatUI(tk.Tk):
 
         self._set_chat_controls(False)
         self.append_system("Select a model and click Connect to begin")
-        self.append_system("Internet search disabled - enable with 🌐 Internet button if needed")
         if self.spell_checker.enabled:
             self.append_system("Spell checking enabled - right-click misspelled words for suggestions")
+        
+        # Setup cleanup on window close
+        self.protocol("WM_DELETE_WINDOW", self.on_exit)
 
     def _show_model_menu(self):
         """Show dropdown menu for model selection"""
@@ -423,9 +426,6 @@ class OllamaChatUI(tk.Tk):
         else:
             # Fallback to hardcoded list if API fails
             models = [
-                ("gemma3:12b", "Claire"),
-                ("gemma3:27b", "Jane"),
-                ("qwen2.5:14b", "Maria")
             ]
             
             for model_id, display_name in models:
@@ -681,7 +681,6 @@ This is a graphical user interface for chatting with locally-hosted Ollama langu
 ## Features
 
 - 🤖 **Model Management** - Install, delete, and switch between AI models
-- 🌐 **Internet Search** - Enable web search for current information
 - 💾 **Save/Load Chats** - Save conversations and reload them later
 - 📊 **Token Counter** - Track conversation length (input/output tokens)
 - 🎨 **Themes** - Choose from 5 color schemes
@@ -704,7 +703,6 @@ This is a graphical user interface for chatting with locally-hosted Ollama langu
 
 2. **Install Python dependencies**:
    ```bash
-   pip install requests duckduckgo-search --break-system-packages
    ```
 
 3. **Install tkinter** (if not already installed):
@@ -806,7 +804,7 @@ Full license text: https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode
             with open(model_names_path, 'w') as f:
                 f.write("""# How to Change Model Display Names
 
-You can give your AI models custom names like "Claire", "Bob", "Assistant", etc.
+You can give your AI models custom names like "Example", "Bob", "Assistant", etc.
 
 ## Steps
 
@@ -820,16 +818,16 @@ You can give your AI models custom names like "Claire", "Bob", "Assistant", etc.
 2. **Find the model_display_names section** (around line 150):
    ```python
    self.model_display_names = {
-       "gemma3:12b": "Claire",
-       "gemma3:27b": "Jane",
-       "qwen2.5:14b": "Maria"
+       "gemma3:12b": "Example",
+       "gemma3:27b": "Example",
+       "qwen2.5:14b": "Example"
    }
    ```
 
 3. **Add or modify entries**:
    ```python
    self.model_display_names = {
-       "gemma3:12b": "Claire",
+       "gemma3:12b": "Example",
        "llama3.1:8b": "Bob",
        "mistral:7b": "Assistant",
        "your-model:tag": "Your Custom Name"
@@ -958,7 +956,6 @@ sudo pacman -S tk
 
 **Solution:**
 ```bash
-pip install requests duckduckgo-search --break-system-packages
 ```
 
 ### "error: externally-managed-environment"
@@ -1005,8 +1002,6 @@ Or use the **📥 Install Model** button in Settings → Model Management.
 - Use smaller models
 - Clear chat history more frequently
 - Restart Ollama: `systemctl restart ollama`
-
-## Internet Search Issues
 
 ### Search not working
 
@@ -1299,7 +1294,7 @@ python3 -c "import tkinter"
         # Instructions
         instructions = tk.Label(
             names_frame,
-            text="\nTo add or edit custom names, modify the model_display_names\ndictionary in the Python code (around line 150).\n\nExample:\nself.model_display_names = {\n    \"gemma3:12b\": \"Claire\",\n    \"llama3.1:8b\": \"Bob\"\n}",
+            text="\nTo add or edit custom names, modify the model_display_names\ndictionary in the Python code (around line 150).\n\nExample:\nself.model_display_names = {\n    \"gemma3:12b\": \"Example\",\n    \"llama3.1:8b\": \"Bob\"\n}",
             font=("Monospace", 8),
             bg=COLOR_BG_FRAME,
             fg=COLOR_TEXT_SYSTEM,
@@ -1677,12 +1672,6 @@ python3 -c "import tkinter"
         else:
             self.connect_model()
 
-    def toggle_web_search(self):
-        self.web_search_enabled = not self.web_search_enabled
-        status = "ON" if self.web_search_enabled else "OFF"
-        self.search_toggle_btn.configure(text=f"🌐 Internet: {status}")
-        self.append_system(f"Internet search {'enabled' if self.web_search_enabled else 'disabled'}")
-
     def connect_model(self):
         selected = self.model_var.get()
         # Extract model ID from "DisplayName (model:id)" format
@@ -1726,182 +1715,6 @@ python3 -c "import tkinter"
         self._set_chat_controls(False)
         self.append_system("Disconnected. Select a model to reconnect.")
 
-    # ---------- Web Search ----------
-    def needs_web_search(self, query):
-        query_lower = query.lower()
-        
-        current_keywords = [
-            'today', 'now', 'current', 'latest', 'recent', 
-            'price', 'trading', 'news', 'forecast', 'tomorrow',
-            'this week', 'this month', 'what is', 'what are'
-        ]
-        
-        current_topics = [
-            'crypto', 'bitcoin', 'ethereum', 'stock', 'market',
-            'weather', 'sports', 'election', 'covid'
-        ]
-        
-        has_current_keyword = any(kw in query_lower for kw in current_keywords)
-        has_current_topic = any(topic in query_lower for topic in current_topics)
-        
-        return has_current_keyword or has_current_topic
-
-    def is_crypto_price_query(self, query):
-        query_lower = query.lower()
-        
-        crypto_names = [
-            'bitcoin', 'btc', 'ethereum', 'eth', 'dogecoin', 'doge',
-            'cardano', 'ada', 'solana', 'sol', 'ripple', 'xrp',
-            'polkadot', 'dot', 'litecoin', 'ltc', 'chainlink', 'link'
-        ]
-        
-        price_keywords = ['price', 'trading', 'worth', 'value', 'cost', 'at']
-        
-        has_crypto = any(crypto in query_lower for crypto in crypto_names)
-        has_price_keyword = any(kw in query_lower for kw in price_keywords)
-        
-        return has_crypto and has_price_keyword
-
-    def is_crypto_news_query(self, query):
-        query_lower = query.lower()
-        
-        crypto_keywords = ['crypto', 'bitcoin', 'ethereum', 'blockchain', 'altcoin', 'defi', 'nft', 
-                          'btc', 'eth', 'solana', 'dogecoin', 'cardano', 'ripple', 'xrp']
-        news_keywords = ['news', 'headlines', 'latest', 'updates', 'happening', 'developments']
-        
-        has_crypto = any(kw in query_lower for kw in crypto_keywords)
-        has_news = any(kw in query_lower for kw in news_keywords)
-        
-        return has_crypto and has_news
-
-    def get_crypto_prices(self, query):
-        try:
-            query_lower = query.lower()
-            
-            crypto_map = {
-                'bitcoin': 'bitcoin', 'btc': 'bitcoin',
-                'ethereum': 'ethereum', 'eth': 'ethereum',
-                'dogecoin': 'dogecoin', 'doge': 'dogecoin',
-                'cardano': 'cardano', 'ada': 'cardano',
-                'solana': 'solana', 'sol': 'solana',
-                'ripple': 'ripple', 'xrp': 'ripple',
-                'polkadot': 'polkadot', 'dot': 'polkadot',
-                'litecoin': 'litecoin', 'ltc': 'litecoin',
-                'chainlink': 'chainlink', 'link': 'chainlink'
-            }
-            
-            mentioned_cryptos = []
-            for name, coin_id in crypto_map.items():
-                if name in query_lower and coin_id not in mentioned_cryptos:
-                    mentioned_cryptos.append(coin_id)
-            
-            if not mentioned_cryptos:
-                mentioned_cryptos = ['bitcoin']
-            
-            ids = ','.join(mentioned_cryptos[:5])
-            url = f"https://api.coingecko.com/api/v3/simple/price?ids={ids}&vs_currencies=usd&include_24hr_change=true"
-            
-            self.append_search(f"💰 Fetching crypto prices from CoinGecko...")
-            
-            response = requests.get(url, timeout=10)
-            response.raise_for_status()
-            data = response.json()
-            
-            if not data:
-                return None
-            
-            result = "Real-time cryptocurrency prices (CoinGecko API):\n\n"
-            for coin_id in mentioned_cryptos:
-                if coin_id in data:
-                    price = data[coin_id]['usd']
-                    change = data[coin_id].get('usd_24h_change', 0)
-                    change_symbol = "📈" if change > 0 else "📉" if change < 0 else "➡️"
-                    result += f"{coin_id.capitalize()}: ${price:,.2f} USD {change_symbol} ({change:+.2f}% 24h)\n"
-            
-            result += f"\nTimestamp: {datetime.now().strftime('%B %d, %Y at %I:%M %p')}\n"
-            
-            self.append_search(f"✓ Retrieved prices for {len(data)} cryptocurrencies")
-            return result
-            
-        except Exception as e:
-            self.append_search(f"✗ CoinGecko API error: {str(e)}")
-            return None
-
-    def is_realtime_query(self, query):
-        """Detect if query is asking for current/real-time information"""
-        query_lower = query.lower()
-        
-        # Skip if it's a crypto query (those have their own handlers)
-        crypto_keywords = ['crypto', 'bitcoin', 'ethereum', 'blockchain', 'btc', 'eth', 
-                          'coin', 'price', 'solana', 'dogecoin', 'cardano', 'ripple', 'xrp']
-        if any(kw in query_lower for kw in crypto_keywords):
-            return False
-        
-        # Time-sensitive keywords that indicate "right now" news
-        realtime_keywords = [
-            'today', 'right now', 'currently', 'current', 
-            'happening now', 'just happened', 'breaking',
-            'this morning', 'this afternoon', 'this evening', 'tonight'
-        ]
-        
-        # Only trigger if has strong time indicator
-        return any(kw in query_lower for kw in realtime_keywords)
-
-    def get_crypto_news(self, max_articles=8):
-        try:
-            url = "https://min-api.cryptocompare.com/data/v2/news/?lang=EN"
-            
-            self.append_search(f"📰 Fetching crypto news from CryptoCompare...")
-            
-            response = requests.get(url, timeout=10)
-            response.raise_for_status()
-            data = response.json()
-            
-            if 'Data' not in data:
-                self.append_search(f"⚠️ Unexpected API response structure")
-                return None
-            
-            articles = data['Data'][:max_articles]
-            
-            if not articles:
-                self.append_search(f"⚠️ No articles returned from API")
-                return None
-            
-            current_date = datetime.now().strftime('%B %d, %Y')
-            result = f"=== LATEST CRYPTOCURRENCY NEWS ({current_date}) ===\n\n"
-            result += f"Retrieved {len(articles)} recent articles from trusted crypto news sources:\n\n"
-            
-            for i, article in enumerate(articles, 1):
-                title = article.get('title', 'No title')
-                body = article.get('body', '')
-                # Get more content for better context
-                body_preview = body[:500] + "..." if len(body) > 500 else body
-                source = article.get('source', 'Unknown')
-                article_url = article.get('url', '')
-                published_timestamp = article.get('published_on', 0)
-                
-                if published_timestamp:
-                    published = datetime.fromtimestamp(published_timestamp)
-                    time_ago = self._time_ago(published)
-                else:
-                    time_ago = "unknown time"
-                
-                result += f"ARTICLE {i}:\n"
-                result += f"Title: {title}\n"
-                result += f"Source: {source}\n"
-                result += f"Published: {time_ago}\n"
-                result += f"Summary: {body_preview}\n"
-                if article_url:
-                    result += f"URL: {article_url}\n"
-                result += f"{'-' * 60}\n\n"
-            
-            self.append_search(f"✓ Retrieved {len(articles)} news articles")
-            return result
-            
-        except Exception as e:
-            self.append_search(f"✗ Error fetching news: {str(e)}")
-            return None
-
     def _time_ago(self, timestamp):
         now = datetime.now()
         diff = now - timestamp
@@ -1917,41 +1730,6 @@ python3 -c "import tkinter"
         else:
             return "just now"
 
-    def search_web(self, query, max_results=8):
-        try:
-            self.append_search(f"🔍 Searching the web for: {query}")
-            
-            with DDGS() as ddgs:
-                results = list(ddgs.text(query, max_results=max_results))
-            
-            if not results:
-                self.append_search("⚠ No results found - trying simpler query...")
-                simple_query = ' '.join(query.split()[:3])
-                with DDGS() as ddgs:
-                    results = list(ddgs.text(simple_query, max_results=max_results))
-            
-            if not results:
-                self.append_search("✗ Search failed - model will answer without current data")
-                return "SEARCH_FAILED"
-            
-            formatted_results = "=== WEB SEARCH RESULTS ===\n\n"
-            formatted_results += f"Found {len(results)} relevant sources for: \"{query}\"\n\n"
-            
-            for i, result in enumerate(results, 1):
-                formatted_results += f"RESULT {i}:\n"
-                formatted_results += f"Title: {result['title']}\n"
-                formatted_results += f"Content: {result['body']}\n"
-                formatted_results += f"Source: {result['href']}\n"
-                formatted_results += f"{'-' * 60}\n\n"
-            
-            self.append_search(f"✓ Found {len(results)} results")
-            return formatted_results
-            
-        except Exception as e:
-            self.append_search(f"✗ Search error: {str(e)}")
-            return "SEARCH_FAILED"
-
-    # ---------- Key handling ----------
     def on_enter_key(self, event):
         if not self.connected:
             return "break"
@@ -1971,9 +1749,6 @@ python3 -c "import tkinter"
     def append_system(self, text):
         ts = datetime.now().strftime("%H:%M:%S")
         self._append(f"[{ts}] {text}\n", "system")
-
-    def append_search(self, text):
-        self._append(f"    {text}\n", "search")
 
     def append_user(self, text):
         self._append(f"\nYou: {text}\n", "user")
@@ -1998,6 +1773,22 @@ python3 -c "import tkinter"
             text=f"Tokens: {self.total_tokens:,} (In: {self.input_tokens:,} | Out: {self.output_tokens:,})",
             fg="#64B5F6" if self.total_tokens > 0 else "#888888"
         )
+    
+    def update_stats(self):
+        """Update response speed and message count"""
+        # Update speed
+        if self.last_tokens_per_sec > 0:
+            self.speed_label.configure(
+                text=f"Speed: {self.last_tokens_per_sec:.1f} t/s",
+                fg="#81C784"  # Green
+            )
+        
+        # Update message count (user + assistant pairs)
+        message_count = len(self.messages)
+        self.message_count_label.configure(
+            text=f"Messages: {message_count}",
+            fg="#FFD54F" if message_count > 0 else "#888888"  # Yellow when active
+        )
 
     # ---------- Actions ----------
     def on_submit(self):
@@ -2012,51 +1803,23 @@ python3 -c "import tkinter"
         self.user_input.delete("1.0", tk.END)
         self.append_user(prompt)
 
-        search_context = None
-        if self.web_search_enabled and self.needs_web_search(prompt):
-            if self.is_crypto_news_query(prompt):
-                search_context = self.get_crypto_news()
-            elif self.is_crypto_price_query(prompt):
-                search_context = self.get_crypto_prices(prompt)
-            else:
-                # Use DuckDuckGo for all other searches
-                # For real-time queries, enhance with time keywords
-                if self.is_realtime_query(prompt):
-                    enhanced_query = f"{prompt} today latest news"
-                    search_context = self.search_web(enhanced_query)
-                else:
-                    search_context = self.search_web(prompt)
-
-        current_date = datetime.now().strftime("%B %d, %Y")
-        
-        if search_context and search_context != "SEARCH_FAILED":
-            enhanced_prompt = f"""Today's date is {current_date}.
-
-{search_context}
-
-User's Question: {prompt}
-
-INSTRUCTIONS: Using the search results above, provide a comprehensive and detailed answer to the user's question. Include:
-- Key information from multiple sources
-- Specific details, numbers, and facts when available
-- Different perspectives if sources disagree
-- Context and explanations to help the user understand
-
-Be thorough and informative. Synthesize the information rather than just listing it. If the search results don't fully answer the question, clearly state what information is missing."""
-            self.messages.append({"role": "user", "content": enhanced_prompt})
-        elif search_context == "SEARCH_FAILED":
-            enhanced_prompt = f"Today's date is {current_date}.\n\nUser question: {prompt}\n\nIMPORTANT: Web search failed. You do not have access to current information. Please inform the user that you cannot provide current data for this query and that they should try again or search manually."
-            self.messages.append({"role": "user", "content": enhanced_prompt})
-        else:
-            self.messages.append({"role": "user", "content": prompt})
+        self.messages.append({"role": "user", "content": prompt})
 
         self._set_chat_controls(False)
 
         try:
+            import time
+            start_time = time.time()
+            
             self.append_assistant_start()
             reply = self.stream_ollama_chat(self.messages)
             self.messages.append({"role": "assistant", "content": reply})
             self._append("\n", "assistant")
+            
+            # Calculate response time and speed
+            end_time = time.time()
+            response_time = end_time - start_time
+            self.last_response_time = response_time
             
             # Update token count
             user_tokens = self.estimate_tokens(prompt)
@@ -2064,7 +1827,13 @@ Be thorough and informative. Synthesize the information rather than just listing
             self.input_tokens += user_tokens
             self.output_tokens += assistant_tokens
             self.total_tokens += user_tokens + assistant_tokens
+            
+            # Calculate tokens per second
+            if response_time > 0:
+                self.last_tokens_per_sec = assistant_tokens / response_time
+            
             self.update_token_count()
+            self.update_stats()
             
         except Exception as e:
             messagebox.showerror("Error", str(e))
@@ -2119,7 +1888,10 @@ Be thorough and informative. Synthesize the information rather than just listing
         self.total_tokens = 0
         self.input_tokens = 0
         self.output_tokens = 0
+        self.last_response_time = 0
+        self.last_tokens_per_sec = 0
         self.update_token_count()
+        self.update_stats()
         self.chat_log.configure(state="normal")
         self.chat_log.delete("1.0", tk.END)
         self.chat_log.configure(state="disabled")
@@ -2240,6 +2012,7 @@ Be thorough and informative. Synthesize the information rather than just listing
             messagebox.showerror("Load Failed", f"Failed to load conversation:\n{str(e)}")
 
     def on_exit(self):
+        # Cancel any running countdown timer
         self.destroy()
 
 

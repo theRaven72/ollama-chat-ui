@@ -23,12 +23,13 @@ A sleek, feature-rich GUI for interacting with locally-hosted Ollama language mo
 - 🎨 **Clean Dark Interface** - Easy on the eyes for extended coding/writing sessions
 - 🤖 **Multiple Model Support** - Switch between installed models on the fly
 - 📥 **Built-in Model Installer** - Download and install new Ollama models directly from the UI
-- 🌐 **Internet Search Integration** - Enable web search for current information (powered by DuckDuckGo)
 - 💬 **Streaming Responses** - Watch AI responses appear in real-time
+- 📊 **Real-time Stats** - Monitor response speed (tokens/second), message count, and token usage
 - 📝 **Spell Checker** - Optional spell checking with suggestions (requires aspell)
 - 🎭 **Custom Model Names** - Personalize your models with friendly names
-- 💾 **Conversation History** - Full chat memory within each session
-- 🔄 **Easy Model Management** - Install and switch between models seamlessly
+- 💾 **Save/Load Conversations** - Save and restore chat sessions
+- 🎨 **Theme Support** - Customize colors and appearance
+- 🔄 **Easy Model Management** - Install, delete, and manage models from the UI
 
 ## Requirements
 
@@ -45,7 +46,7 @@ A sleek, feature-rich GUI for interacting with locally-hosted Ollama language mo
 
 #### Required:
 ```bash
-pip install requests duckduckgo-search
+pip install requests
 ```
 
 #### Tkinter (GUI library):
@@ -109,7 +110,7 @@ cd ollama-chat-ui
 
 2. **Install Python dependencies:**
 ```bash
-pip install requests duckduckgo-search
+pip install requests
 ```
 
 3. **Make sure Ollama is installed and running** (see above)
@@ -154,20 +155,20 @@ python3 ollama_UI_Final.py
 - Select and install - progress is shown in real-time
 - Newly installed models appear immediately in the model selector
 
-#### Internet Search
-- Toggle with the **🌐 Internet** button
-- When enabled, the AI can search the web for current information
-- Useful for questions about recent events, prices, news, etc.
-- Disabled by default to keep responses fast
+#### Real-time Statistics
+The status bar displays useful information while you chat:
+- **Tokens**: Total tokens used (with input/output breakdown)
+- **Speed**: Response speed in tokens per second
+- **Messages**: Number of messages in the current conversation
 
 #### Custom Model Names
 You can personalize your models by editing the `model_display_names` dictionary in the code:
 
 ```python
 self.model_display_names = {
-    "gemma3:12b": "Claire",
-    "gemma3:27b": "Jane",
-    "qwen2.5:14b": "Maria"
+    "gemma3:12b": "MyAssistant",
+    "llama3.1:8b": "Helper",
+    "qwen2.5:14b": "Sage"
 }
 ```
 
@@ -218,24 +219,33 @@ This project includes comprehensive guides for setup, customization, and trouble
 
 ## Quick Troubleshooting
 
+### Models not appearing in dropdown / "Connection refused"
+**Most Common Issue:** Ollama service isn't running.
+
+Check if Ollama is running:
+```bash
+systemctl status ollama
+```
+
+If it shows "inactive (dead)", start it:
+```bash
+sudo systemctl start ollama
+sudo systemctl enable ollama  # Enable auto-start on boot
+```
+
+Verify it's working:
+```bash
+ollama list  # Should show your installed models
+```
+
 ### "ModuleNotFoundError: No module named 'tkinter'"
 Install tkinter for your distribution (see Requirements section above)
 
-### "Connection refused" or can't connect to models
-Make sure Ollama is running:
+### No models installed
+Use the **📥 Install Model** button in the UI, or install from command line:
 ```bash
-systemctl status ollama
-# or
-ollama list
+ollama pull gemma3:12b
 ```
-
-### Models not appearing in dropdown
-Verify Ollama has models installed:
-```bash
-ollama list
-```
-
-If no models are installed, use the **📥 Install Model** button in the UI.
 
 ### Spell checker not working
 Install aspell:
@@ -245,6 +255,8 @@ sudo apt install aspell  # Ubuntu/Debian/Mint
 
 ### Font looks different
 The fancy script font (Brush Script MT) may not be available on all systems. The app will gracefully fall back to a default font.
+
+**For more detailed troubleshooting, see [troubleshooting-ui.md](troubleshooting-ui.md)**
 
 ## Managing Models
 
@@ -280,7 +292,6 @@ MIT License - feel free to use, modify, and distribute as you wish. Sale of the 
 ## Acknowledgments
 
 - Built for [Ollama](https://ollama.ai)
-- Web search powered by [DuckDuckGo](https://duckduckgo.com)
 - Spell checking via [GNU Aspell](http://aspell.net/)
 
 ## Support
