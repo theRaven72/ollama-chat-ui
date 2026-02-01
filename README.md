@@ -1,307 +1,168 @@
-# Ollama Chat UI
+# Ollama Chat UI - Setup Instructions
 
-A sleek, feature-rich GUI for interacting with locally-hosted Ollama language models. Built with Python and tkinter for maximum compatibility across Linux distributions.
-
-![Ollama Chat UI](https://img.shields.io/badge/Python-3.x-blue)
-![License](https://img.shields.io/badge/License-MIT-green)
-
-## Table of Contents
-
-- [Features](#features)
-- [Requirements](#requirements)
-- [Installation](#installation)
-- [Usage](#usage)
-- [Documentation](#-documentation)
-- [Customization](#customization)
-- [Quick Troubleshooting](#quick-troubleshooting)
-- [Managing Models](#managing-models)
-- [Contributing](#contributing)
-- [License](#license)
+A Python-based UI for interacting with Ollama models with automatic service management.
 
 ## Features
+- 🚀 **Auto-start Ollama** when launching the UI
+- 🛑 **Auto-stop Ollama** when exiting (frees GPU resources)
+- 💬 Multiple model support with custom display names
+- 🌐 Web search integration (DuckDuckGo)
+- 📊 Token counting and conversation management
+- 🎨 Multiple themes (Dark, Light, Matrix, Nord, Dracula)
 
-- 🎨 **Clean Dark Interface** - Easy on the eyes for extended coding/writing sessions
-- 🤖 **Multiple Model Support** - Switch between installed models on the fly
-- 📥 **Built-in Model Installer** - Download and install new Ollama models directly from the UI
-- 💬 **Streaming Responses** - Watch AI responses appear in real-time
-- 📊 **Real-time Stats** - Monitor response speed (tokens/second), message count, and token usage
-- 📝 **Spell Checker** - Optional spell checking with suggestions (requires aspell)
-- 🎭 **Custom Model Names** - Personalize your models with friendly names
-- 💾 **Save/Load Conversations** - Save and restore chat sessions
-- 🎨 **Theme Support** - Customize colors and appearance
-- 🔄 **Easy Model Management** - Install, delete, and manage models from the UI
+## ⚠️ IMPORTANT: Required Setup (One-Time)
 
-## Requirements
+Before running this UI, you **MUST** configure sudo permissions to allow automatic Ollama start/stop without password prompts.
 
-**GPU Acceleration (AMD GPUs)**  
-> Ollama automatically uses Vulkan for GPU acceleration on supported AMD GPUs.  
-> No manual configuration, environment variables, or special setup is required.
+### Setup Steps:
 
-### System Requirements
-- **Python 3.x** (3.7 or higher recommended)
-- **Ollama** installed and running locally
-- **Linux** (tested on Ubuntu, Pop!_OS, Fedora, Arch, Mint - should work on most distros)
-
-### Python Dependencies
-
-#### Required:
+**1. Open the sudoers file safely:**
 ```bash
-pip install requests
+sudo visudo
 ```
 
-#### Tkinter (GUI library):
-Most systems have this pre-installed, but if not:
-
-**Ubuntu/Debian/Pop!_OS/Mint:**
-```bash
-sudo apt install python3-tk
+**2. Add this line at the very bottom of the file:**
+```
+YOUR_USERNAME ALL=(ALL) NOPASSWD: /usr/bin/systemctl stop ollama, /usr/bin/systemctl start ollama
 ```
 
-**Fedora:**
-```bash
-sudo dnf install python3-tkinter
+**Replace `YOUR_USERNAME` with your actual username.** For example:
+```
+john ALL=(ALL) NOPASSWD: /usr/bin/systemctl stop ollama, /usr/bin/systemctl start ollama
 ```
 
-**Arch Linux:**
+**3. Save and exit:**
+- In nano: Press `Ctrl+O`, then `Enter`, then `Ctrl+X`
+- In vim: Press `Esc`, type `:wq`, press `Enter`
+
+**4. Test it works (should NOT ask for password):**
 ```bash
-sudo pacman -S tk
+sudo systemctl stop ollama
+sudo systemctl start ollama
 ```
 
-**Gentoo:**
-```bash
-# Add 'tk' to your Python USE flags and rebuild
-```
+If it asks for a password, the sudoers entry wasn't added correctly. Try again.
 
-#### Optional (for spell checking):
-```bash
-# Ubuntu/Debian/Mint
-sudo apt install aspell
+### Why is this needed?
 
-# Fedora
-sudo dnf install aspell
+The UI automatically manages the Ollama service to:
+- **Start Ollama** when you launch the UI (so it's ready immediately)
+- **Stop Ollama** when you exit (to free GPU VRAM and prevent memory leaks)
 
-# Arch
-sudo pacman -S aspell
-```
+Without this sudo configuration, you'll get password prompts or the service management will fail silently.
 
-### Ollama Installation
+### Security Note
 
-If you don't have Ollama installed:
+This configuration allows your user account to **ONLY** start and stop the Ollama service, nothing else. An attacker with access to your account:
+- ✅ Can stop/start Ollama (minor inconvenience)
+- ❌ **CANNOT** delete files, modify system settings, or escalate privileges
 
-```bash
-curl -fsSL https://ollama.ai/install.sh | sh
-```
-
-Or visit [ollama.ai](https://ollama.ai) for other installation methods.
-
-Make sure Ollama is running before launching the UI:
-```bash
-# Ollama should start automatically, but you can check with:
-ollama list
-```
+For a personal desktop/workstation, this is a safe and reasonable trade-off for convenience.
 
 ## Installation
 
-1. **Clone or download this repository:**
+**1. Install dependencies:**
 ```bash
-git clone https://github.com/yourusername/ollama-chat-ui.git
-cd ollama-chat-ui
+# Install Python packages
+pip install requests duckduckgo-search
+
+# Optional: Install spell checker (for typo detection)
+sudo apt install aspell
 ```
 
-2. **Install Python dependencies:**
+**2. Ensure Ollama is installed and configured:**
 ```bash
-pip install requests
+# Check Ollama is installed
+ollama --version
+
+# Check Ollama service exists
+systemctl status ollama
 ```
 
-3. **Make sure Ollama is installed and running** (see above)
+**3. Complete the sudoers setup above**
 
-4. **Run the application:**
+**4. Run the UI:**
 ```bash
-python3 ollama_UI_Final.py
+python3 ollama_UI_Final_with_auto_start_stop.py
 ```
 
 ## Usage
 
-### First Time Setup
+1. **Launch the UI** - Ollama starts automatically
+2. **Select a model** from the dropdown
+3. **Click "Connect"**
+4. **Start chatting!**
+5. **Toggle web search** if you need current information
+6. **Click "Exit"** when done - Ollama stops automatically
 
-1. **Launch the application:**
+## Troubleshooting
+
+### "Connection refused" error on launch
+- **Cause:** Ollama service didn't start
+- **Check:** Did you complete the sudoers setup?
+- **Test:** Run `sudo systemctl start ollama` manually - does it ask for a password?
+- **Fix:** Re-do the sudoers configuration above
+
+### Ollama doesn't stop when I exit the UI
+- **Check:** Your sudoers entry is correct
+- **Test:** Run `sudo systemctl stop ollama` - does it work without a password?
+- **Temporary fix:** Manually run `sudo systemctl stop ollama` after closing the UI
+
+### UI launches but can't find models
+- **Check:** Ollama has models installed
+- **Fix:** Pull some models:
+  ```bash
+  ollama pull llama3.1:8b
+  ollama pull gemma3:12b
+  ```
+
+### Permission denied when editing sudoers
+- **Fix:** You need to use `sudo visudo`, not edit the file directly
+
+## Alternative: Skip Auto-Management
+
+If you don't want to configure sudoers, you can:
+
+1. **Manually start Ollama before launching the UI:**
    ```bash
-   python3 ollama_UI_Final.py
+   sudo systemctl start ollama
+   python3 ollama_UI_Final_with_auto_start_stop.py
    ```
 
-2. **Install a model** (if you don't have any):
-   - Click the **📥 Install Model** button
-   - Select a model from the list
-   - Confirm installation
-   - Wait for download to complete
+2. **Manually stop Ollama after exiting:**
+   ```bash
+   sudo systemctl stop ollama
+   ```
 
-3. **Connect to a model:**
-   - Click the **Model** dropdown
-   - Select your desired model
-   - Click **Connect**
+The UI will still work, but you'll need to manage Ollama yourself.
 
-4. **Start chatting!**
+## Model Display Names
 
-### Features Guide
-
-#### Model Selection
-- Click the model dropdown to see all installed models
-- Models are dynamically loaded from your local Ollama installation
-- Switch models anytime by disconnecting and selecting a new one
-
-#### Installing New Models
-- Click **📥 Install Model**
-- Browse the curated list of popular models
-- Select and install - progress is shown in real-time
-- Newly installed models appear immediately in the model selector
-
-#### Real-time Statistics
-The status bar displays useful information while you chat:
-- **Tokens**: Total tokens used (with input/output breakdown)
-- **Speed**: Response speed in tokens per second
-- **Messages**: Number of messages in the current conversation
-
-#### Custom Model Names
-You can personalize your models by editing the `model_display_names` dictionary in the code:
-
+The UI uses friendly names for models. Edit these in the code:
 ```python
 self.model_display_names = {
-    "gemma3:12b": "MyAssistant",
-    "llama3.1:8b": "Helper",
-    "qwen2.5:14b": "Sage"
+    "gemma3:12b": "Dana",
+    "gemma3:27b": "Jane",
+    "qwen2.5:14b": "Maria",
+    "qwen2.5:7b-instruct": "Claire"
 }
 ```
 
-The custom name will appear in the top-right corner when connected!
+## License
 
-#### Keyboard Shortcuts
-- **Enter** - Send message
-- **Ctrl+Enter** - Also sends message (useful if you want to add Enter for newlines)
-- **Right-click** on misspelled words for spelling suggestions (if aspell is installed)
-
-## Customization
-
-### Color Scheme
-Edit the color constants at the top of the file:
-```python
-COLOR_BG_FRAME = "#1f1f1f"      # Main background
-COLOR_BG_CHAT = "#000000"        # Chat area background
-COLOR_TEXT_USER = "#ffffff"      # Your messages
-COLOR_TEXT_ASSIST = "#ffd54a"    # AI responses
-```
-
-### Available Models List
-To add/remove models from the installer, edit the `AVAILABLE_MODELS` list:
-```python
-AVAILABLE_MODELS = [
-    ("model:tag", "Description"),
-    # Add more models here
-]
-```
-
-## 📚 Documentation
-
-This project includes comprehensive guides for setup, customization, and troubleshooting.
-
-### Getting Started
-- **[⚠️ Compatibility & System Requirements](compatibility.md)** - Read this FIRST to see if these instructions will work for your system.
-
-### Troubleshooting
-- **[UI Troubleshooting](troubleshooting-ui.md)** - App won't start? Buttons not working? Check this guide.
-
-### Customization Guides
-- **[Change Model Display Names](change-model-names.md)** - Give your models custom names like "Claire" or "Bob"
-- **[Customize Themes](customize-themes.md)** - Create your own color schemes
-- **[Create Desktop Launcher](create-launcher.md)** - Add the app to your application menu
-- **[Edit Modelfiles](edit-modelfiles.md)** - Customize AI personality and behavior
-
----
-
-## Quick Troubleshooting
-
-### Models not appearing in dropdown / "Connection refused"
-**Most Common Issue:** Ollama service isn't running.
-
-Check if Ollama is running:
-```bash
-systemctl status ollama
-```
-
-If it shows "inactive (dead)", start it:
-```bash
-sudo systemctl start ollama
-sudo systemctl enable ollama  # Enable auto-start on boot
-```
-
-Verify it's working:
-```bash
-ollama list  # Should show your installed models
-```
-
-### "ModuleNotFoundError: No module named 'tkinter'"
-Install tkinter for your distribution (see Requirements section above)
-
-### No models installed
-Use the **📥 Install Model** button in the UI, or install from command line:
-```bash
-ollama pull gemma3:12b
-```
-
-### Spell checker not working
-Install aspell:
-```bash
-sudo apt install aspell  # Ubuntu/Debian/Mint
-```
-
-### Font looks different
-The fancy script font (Brush Script MT) may not be available on all systems. The app will gracefully fall back to a default font.
-
-**For more detailed troubleshooting, see [troubleshooting-ui.md](troubleshooting-ui.md)**
-
-## Managing Models
-
-### List installed models:
-```bash
-ollama list
-```
-
-### Delete a model:
-```bash
-ollama rm model:tag
-```
-
-### Example - keeping only your named models:
-```bash
-# Keep gemma3:12b, gemma3:27b, qwen2.5:14b
-# Delete everything else:
-ollama rm unwanted-model:tag
-```
+MIT License - feel free to modify and use as needed.
 
 ## Contributing
 
-Contributions are welcome! Feel free to:
-- Report bugs
-- Suggest new features
-- Submit pull requests
-- Improve documentation
-
-## License
-
-MIT License - feel free to use, modify, and distribute as you wish. Sale of the application, code, files, is prohibited.
-
-## Acknowledgments
-
-- Built for [Ollama](https://ollama.ai)
-- Spell checking via [GNU Aspell](http://aspell.net/)
+Pull requests welcome! Please ensure:
+- Code follows existing style
+- New features are documented
+- Security implications are considered
 
 ## Support
 
 If you encounter issues:
 1. Check the Troubleshooting section above
-2. Verify all requirements are installed
-3. Make sure Ollama is running: `ollama list`
+2. Verify Ollama is working: `ollama run llama3.1:8b`
+3. Check Ollama service: `systemctl status ollama`
 4. Open an issue on GitHub with error details
-
----
-
-**Enjoy chatting with your AI models!** 🚀
